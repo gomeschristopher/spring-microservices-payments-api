@@ -1,6 +1,7 @@
 package com.gomeschristopher.payments.service;
 
 import com.gomeschristopher.payments.dto.PaymentDTO;
+import com.gomeschristopher.payments.http.OrderClient;
 import com.gomeschristopher.payments.model.Payment;
 import com.gomeschristopher.payments.model.Status;
 import com.gomeschristopher.payments.repository.PaymentRepository;
@@ -9,11 +10,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import javax.persistence.EntityNotFoundException;
+import java.util.Optional;
+
 @Service
 public class PaymentService {
 
     @Autowired
     private PaymentRepository repository;
+
+    @Autowired
+    private OrderClient order;
 
     public Page<PaymentDTO> getAll(Pageable pageable) {
         return repository.findAll(pageable)
@@ -55,5 +62,17 @@ public class PaymentService {
         Payment payment = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
         repository.delete(payment);
+    }
+
+    public void confirmPayment(Long id){
+        Optional<Payment> payment = repository.findById(id);
+
+        if (!payment.isPresent()) {
+            throw new EntityNotFoundException();
+        }
+
+        payment.get().setStatus(Status.CONFIRMED);
+        repository.save(payment.get());
+        order.updatePayment(payment.get().getOrderId());
     }
 }

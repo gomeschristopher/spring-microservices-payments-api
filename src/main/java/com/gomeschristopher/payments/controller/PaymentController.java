@@ -2,6 +2,7 @@ package com.gomeschristopher.payments.controller;
 
 import com.gomeschristopher.payments.dto.PaymentDTO;
 import com.gomeschristopher.payments.service.PaymentService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,5 +43,15 @@ public class PaymentController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/confirm")
+    @CircuitBreaker(name = "updateOrder", fallbackMethod = "confirmPaymentFallback")
+    public void confirmPayment(@PathVariable Long id) {
+        service.confirmPayment(id);
+    }
+
+    public void confirmPaymentFallback(Long id, Throwable t) {
+        System.out.println("Falha ao confirmar pagamento para o pedido ID: " + id + ". Motivo: " + t.getMessage());
     }
 }
